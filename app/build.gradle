@@ -1,13 +1,13 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 26
-    buildToolsVersion '26.0.2'
+    compileSdkVersion 28
+    buildToolsVersion '28.0.3'
 
     defaultConfig {
         applicationId "com.github.orangegangsters.lollipin"
         minSdkVersion 14
-        targetSdkVersion 24
+        targetSdkVersion 28
         versionCode 1
         versionName "1.0"
     }
@@ -20,16 +20,16 @@ android {
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
 
-    compile project(':lib')
-    compile 'com.android.support:appcompat-v7:26.0.2'
+    implementation project(':lib')
+    implementation 'androidx.appcompat:appcompat:1.1.0'
 
     //Lollipop dialogs https://github.com/lewisjdeane/L-Dialogs and buttons, animations etc...
-    compile 'uk.me.lewisdeane.ldialogs:ldialogs:1.2.0@aar'
+    implementation 'uk.me.lewisdeane.ldialogs:ldialogs:1.2.0@aar'
 
     //test
-    androidTestCompile 'com.jayway.android.robotium:robotium-solo:5.5.2'
+    androidTestImplementation 'com.jayway.android.robotium:robotium-solo:5.5.2'
 }
 
 // REQUIRED: Google's new Maven repo is required for the latest

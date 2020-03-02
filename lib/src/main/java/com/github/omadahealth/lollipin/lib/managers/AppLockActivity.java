@@ -1,17 +1,21 @@
 package com.github.omadahealth.lollipin.lib.managers;
 
-import android.content.Context;
 import android.content.Intent;
 import android.hardware.fingerprint.FingerprintManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.biometric.BiometricManager;
+import androidx.biometric.BiometricPrompt;
+import androidx.core.content.ContextCompat;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.github.omadahealth.lollipin.lib.PinActivity;
 import com.github.omadahealth.lollipin.lib.R;
@@ -22,6 +26,7 @@ import com.github.omadahealth.lollipin.lib.views.PinCodeRoundView;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Executor;
 
 /**
  * Created by stoyan and olivier on 1/13/15.
@@ -44,12 +49,10 @@ public abstract class AppLockActivity extends PinActivity implements KeyboardBut
 
     protected LockManager mLockManager;
 
-
-    protected FingerprintManager mFingerprintManager;
+    protected BiometricPrompt mBiometricPrompt;
     protected FingerprintUiHelper mFingerprintUiHelper;
 
     protected int mType = AppLock.UNLOCK_PIN;
-    protected int mAttempts = 1;
     protected String mPinCode;
 
     protected String mOldPinCode;
@@ -141,20 +144,27 @@ public abstract class AppLockActivity extends PinActivity implements KeyboardBut
         mFingerprintImageView = (ImageView) this.findViewById(R.id.pin_code_fingerprint_imageview);
         mFingerprintTextView = (TextView) this.findViewById(R.id.pin_code_fingerprint_textview);
         if (mType == AppLock.UNLOCK_PIN && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            mFingerprintManager = (FingerprintManager) getSystemService(Context.FINGERPRINT_SERVICE);
-            mFingerprintUiHelper = new FingerprintUiHelper.FingerprintUiHelperBuilder(mFingerprintManager).build(mFingerprintImageView, mFingerprintTextView, this);
-            try {
-            if (mFingerprintManager.isHardwareDetected() && mFingerprintUiHelper.isFingerprintAuthAvailable()
-                    && mLockManager.getAppLock().isFingerprintAuthEnabled()) {
-                    mFingerprintImageView.setVisibility(View.VISIBLE);
-                    mFingerprintTextView.setVisibility(View.VISIBLE);
-                    mFingerprintUiHelper.startListening();
-                } else {
-                    mFingerprintImageView.setVisibility(View.GONE);
-                    mFingerprintTextView.setVisibility(View.GONE);
-                }
-            } catch (SecurityException e) {
-                Log.e(TAG, e.toString());
+            BiometricManager biometricManager = BiometricManager.from(this);
+            if (biometricManager.canAuthenticate() == BiometricManager.BIOMETRIC_SUCCESS && mLockManager.getAppLock().isFingerprintAuthEnabled()) {
+                Executor executor = ContextCompat.getMainExecutor(this);
+                mBiometricPrompt = new BiometricPrompt(this, executor, new BiometricPromptAuthenticationCallback());
+
+                final BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
+                        .setTitle(getBiometricPromptTitle())
+                        .setSubtitle(getBiometricPromptSubtitle())
+                        .setDescription(getBiometricPromptDescription())
+                        .setNegativeButtonText(getBiometricPromptCancelText())
+                        .build();
+                mBiometricPrompt.authenticate(promptInfo);
+
+                mFingerprintImageView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        mBiometricPrompt.authenticate(promptInfo);
+                    }
+                });
+            } else {
+                // No fingerprint enrolled, hardware not available, or cannot use biometrics for any other reason
                 mFingerprintImageView.setVisibility(View.GONE);
                 mFingerprintTextView.setVisibility(View.GONE);
             }
@@ -214,11 +224,40 @@ public abstract class AppLockActivity extends PinActivity implements KeyboardBut
         return msg;
     }
 
+    /**
+     * Override to change the biometric/fingerprint prompt title.
+     */
+    public @NonNull
+    String getBiometricPromptTitle() {
+        return getString(R.string.pin_code_biometric_prompt_title);
+    }
+
+    /**
+     * Override to change the biometric/fingerprint prompt subtitle.
+     */
+    public String getBiometricPromptSubtitle() {
+        return getString(R.string.pin_code_biometric_prompt_subtitle);
+    }
+
+    /**
+     * Override to change the biometric/fingerprint prompt cancellation text.
+     */
+    public String getBiometricPromptCancelText() {
+        return getString(R.string.pin_code_biometric_cancel_use_pin);
+    }
+
+    /**
+     * Override to change the biometric/fingerprint prompt description.
+     */
+    public String getBiometricPromptDescription() {
+        return null;
+    }
+
     public String getForgotText() {
         return getString(R.string.pin_code_forgot_text);
     }
 
-    private void setForgotTextVisibility(){
+    private void setForgotTextVisibility() {
         mForgotTextView.setVisibility(mLockManager.getAppLock().shouldShowForgot(mType) ? View.VISIBLE : View.GONE);
     }
 
@@ -388,7 +427,7 @@ public abstract class AppLockActivity extends PinActivity implements KeyboardBut
      * Run a shake animation when the password is not valid.
      */
     protected void onPinCodeError() {
-        onPinFailure(mAttempts++);
+        onPinFailure(mLockManager.getAppLock().incrementAndGetLoginAttempts());
         Thread thread = new Thread() {
             public void run() {
                 mPinCode = "";
@@ -403,8 +442,8 @@ public abstract class AppLockActivity extends PinActivity implements KeyboardBut
 
     protected void onPinCodeSuccess() {
         isCodeSuccessful = true;
-        onPinSuccess(mAttempts);
-        mAttempts = 1;
+        onPinSuccess(mLockManager.getAppLock().incrementAndGetLoginAttempts());
+        mLockManager.getAppLock().resetLoginAttempts();
     }
 
     /**
@@ -480,5 +519,25 @@ public abstract class AppLockActivity extends PinActivity implements KeyboardBut
      */
     public Class<? extends AppLockActivity> getCustomAppLockActivityClass() {
         return this.getClass();
+    }
+
+    private class BiometricPromptAuthenticationCallback extends BiometricPrompt.AuthenticationCallback {
+        @Override
+        public void onAuthenticationError(int errorCode, @NonNull CharSequence errString) {
+            super.onAuthenticationError(errorCode, errString);
+            onError();
+        }
+
+        @Override
+        public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
+            super.onAuthenticationSucceeded(result);
+            onAuthenticated();
+        }
+
+        @Override
+        public void onAuthenticationFailed() {
+            super.onAuthenticationFailed();
+            Log.i(TAG, "Biometric authentication failed");
+        }
     }
 }

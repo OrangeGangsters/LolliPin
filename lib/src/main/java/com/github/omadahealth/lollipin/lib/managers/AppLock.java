@@ -202,4 +202,15 @@ public abstract class AppLock {
      * Otherwise returns true
      */
     public abstract boolean shouldLockSceen(Activity activity);
+
+    /**
+     * On successful login, this resets the login attempt count to 0
+     */
+    public abstract void resetLoginAttempts();
+
+    /**
+     * Increments the number of login attempts made, and returns the new value
+     * @return value after incremented
+     */
+    public abstract int incrementAndGetLoginAttempts();
 }

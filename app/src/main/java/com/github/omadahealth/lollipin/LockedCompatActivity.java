@@ -1,7 +1,7 @@
 package com.github.omadahealth.lollipin;
 
 import android.os.Bundle;
-import android.support.v7.widget.Toolbar;
+import androidx.appcompat.widget.Toolbar;
 import com.github.omadahealth.lollipin.lib.PinCompatActivity;
 import lollipin.orangegangsters.github.com.lollipin.R;
 

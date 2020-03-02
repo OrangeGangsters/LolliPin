@@ -66,6 +66,10 @@ public class AppLockImpl<T extends AppLockActivity> extends AppLock implements L
      */
     private static final String FINGERPRINT_AUTH_ENABLED_PREFERENCE_KEY = "FINGERPRINT_AUTH_ENABLED_PREFERENCE_KEY";
     /**
+     * The {@link SharedPreferences} key used to store the number of login attempts the user has made
+     */
+    private static final String NUMBER_OF_PASSCODE_ATTEMPTS_PREFERENCE_KEY = "NUMBER_OF_PASSCODE_ATTEMPTS_PREFERENCE_KEY";
+    /**
      * The default password salt
      */
     private static final String DEFAULT_PASSWORD_SALT = "7xn7@c$";
@@ -319,6 +323,18 @@ public class AppLockImpl<T extends AppLockActivity> extends AppLock implements L
         }
 
         return false;
+    }
+
+    @Override
+    public void resetLoginAttempts() {
+        mSharedPreferences.edit().putInt(NUMBER_OF_PASSCODE_ATTEMPTS_PREFERENCE_KEY, 0).apply();
+    }
+
+    @Override
+    public int incrementAndGetLoginAttempts() {
+        int attempts = mSharedPreferences.getInt(NUMBER_OF_PASSCODE_ATTEMPTS_PREFERENCE_KEY, 0) + 1;
+        mSharedPreferences.edit().putInt(NUMBER_OF_PASSCODE_ATTEMPTS_PREFERENCE_KEY, attempts).apply();
+        return attempts;
     }
 
     @Override

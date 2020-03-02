@@ -30,5 +30,8 @@
     <string name="pin_code_fingerprint_text">Fingerprint</string>
     <string name="pin_code_fingerprint_success">Fingerprint recognized</string>
     <string name="pin_code_fingerprint_not_recognized">Fingerprint not recognized. Try again</string>
+    <string name="pin_code_biometric_prompt_subtitle">Unlock using biometrics</string>
+    <string name="pin_code_biometric_prompt_title">Unlock app</string>
+    <string name="pin_code_biometric_cancel_use_pin">Use PIN</string>
 
 </resources>
